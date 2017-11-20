@@ -119,7 +119,7 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 	unsigned int bin = 0;
 
 	bin = ht_hash(key);
-        printf("key.ROW_ID=(%ld, %d, %ld) }\t",
+        printf(" { key.ROW_ID=(%ld, %d, %ld) }\t",
                key.otid, key.bucketProperty, key.rowId);
 
 	/* search if entry exists already */
@@ -128,7 +128,7 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 		entry_t *entry = &ht->table[bin];
 
 		if (entry->used == 0) {	/* hey unused, we can have it */
-			printf("row %d, used %d <= 1rst entry\n", bin, entry->used);
+			printf("key is %d, used %d <= 1rst entry", bin, entry->used);
 			multi = &entry->multi[entry->used];
 			hashkey_cpy(&multi->ROW_ID, key);
 			entry->used++;
@@ -139,12 +139,12 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 			rc = hashkey_cmp(key, (entry->multi[j]).ROW_ID);
 
 			if (rc == 0)  {		/* key already in ht */
-				printf("row %d, used %d <= entry already exist\n", bin, j);
+				printf("key is %d, used %d <= entry already exist", bin, j);
 				return 0;
 			}
 			else {     /* different value */ 
 			   if(j == entry->used) {  /* insert new multi */
-				printf("row %d, used %d <= adding multi entry\n", bin, j);
+				printf("key is %d, used %d <= adding multi entry", bin, j);
 				multi = &entry->multi[entry->used];
 				hashkey_cpy(&multi->ROW_ID, key);
 				entry->used++;
@@ -157,7 +157,7 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 			/* try next one */
 			/* FIXME: may be good to add a flag saying that next bin used  */
 			/* FIXME: or continue incrementing used to know how many values */
-			printf("row %d, used %d <= trying next row\n", bin, entry->used);
+			printf("row %d, used %d <= trying next row", bin, entry->used);
 			bin = (bin + 1) % HT_SIZE;
 		    }
 		} // end of else
@@ -182,7 +182,7 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 	entry_t *entry = NULL;
 
 	bin = ht_hash(key);
-        printf("Looking for { key.ROW_ID=(%ld, %d, %ld) }\t",
+        printf(" { key.ROW_ID=(%ld, %d, %ld) }  ",
                key.otid, key.bucketProperty, key.rowId);
 
 
@@ -193,7 +193,7 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 		entry = &ht->table[bin];
 
 		if (entry->used == 0) { 	/* key not there */
-			printf("row %d, used %d <= no entries\n", bin, entry->used);
+			printf("key is %d, used %d <= no entries", bin, entry->used);
 			return -1;
 		}
 
@@ -202,17 +202,19 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 			rc = hashkey_cmp(key, multi->ROW_ID);
 
 			if (rc == 0) {		/* good key was found */
-				printf("row %d, multi %d <= entry FOUND\n", bin, j);
+				printf("key is %d, position in multi %d(/%d) => FOUND", 
+					bin, j, entry->used - 1);
 				return bin;
 			}
 		}
 		/* double hash */
 		if (entry->used == HT_MULTI) {	/* try next one */
-			printf("row %d, used %d <= trying next row\n", bin, entry->used);
+			printf("key is %d, used %d <= trying next row", bin, entry->used);
 			bin = (bin + 1) % HT_SIZE;
 		}
 		else {
-			printf("row %d, multi %d <= not found\n", bin, j);
+			printf("key is %d, scan to multi %d(/%d) <= not found", 
+				bin, j - 1, entry->used - 1);
 			return -1;
 		}
 	}
@@ -223,74 +225,113 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
  * #!/usr/bin/python
  * from collections import defaultdict
  *
- * def hashJoin(table_del, index1, table_req, index2):
+ * def hash_write(table_del, index1):
  *     h = defaultdict(list)
  *     # hash phase
  *     for s in table_del:
  *        h[s[index1]].append(s)
- *     # join phase
- *     return [(s, r) for r in table_req for s in h[r[index2]]]
- *
- * for row in hashJoin(table_del, 1, table_req, 0):
- *     print(row)
- *
- * Output: Bitset of 1024 bits 
  */
 
-  static int hash_fct(table_del_t *table_del, unsigned table_del_size,
+  static int hash_write(param_table_t *p_del, table_del_t *table_del, unsigned table_del_size,
                      unsigned int del_entries,
-                     table_req_t *table_req, unsigned table_req_size,
+		     hashtable_t *h 
+                     )
+{
+	unsigned int i, j;
+	table_del_t *t_del;
+	bool skip_ht_set;
+       	printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))", HT_SIZE);
+
+	// hash phase 
+	if(del_entries == UINT_MAX) { /*FIXME : find a smart way to reset the ht */
+		printf("Initialization of the hash table requested\n");
+		ht_init(h);
+	}
+	for (i = 0; i < table_del_size; i++) {
+		skip_ht_set = false;
+		t_del = &table_del[i];
+
+		// Filtering is done on the txnid - then storing ROW_ID in hash table
+        	printf("\ndel_txnid=%ld  ", t_del->del_txnid);
+		if (t_del->del_txnid >= p_del->low_mark) {   //All txns < low-mark is included 
+			printf("filtered:  txns >= low-mark:%ld ",p_del->low_mark); 
+			skip_ht_set = true; }
+		if (t_del->del_txnid <  p_del->low_input) {  //All txns < low-input is excluded
+			printf("filtered:  txns < low-input:%ld ",  p_del->low_input); 
+			skip_ht_set = true; }
+		if (t_del->del_txnid >  p_del->high_mark) {  //All txns > high-mark are excluded 
+			printf("filtered:  txns > high-mark:%ld ",  p_del->high_mark); 
+			skip_ht_set = true; }
+		if (t_del->del_txnid >  p_del->high_input) { //All txns > high-input is excluded 
+			printf("filtered:  txns > high_input:%ld ", p_del->high_input); 
+			skip_ht_set = true; }
+		for (j = 0; j <  p_del->excluded_txn_num; j++) 
+			if ( t_del->del_txnid == p_del->excluded_txn[j]) { //All txns in exclusions are excluded
+				printf("filtered:  txns is listed in excluded list"); 
+				skip_ht_set = true;
+			}
+
+		if(!skip_ht_set)
+			ht_set(h, t_del->ROW_ID);
+		else
+			printf(" => entry not added to hash table"); 
+	}
+	del_entries--;
+
+	//ht_dump(h); // For debug purpose : dumps the hash table
+	return 0;
+}
+
+  static int hash_read(param_table_t *p_req, table_req_t *table_req, unsigned table_req_size,
                      unsigned int req_entries,
                      bitset_t *bitset,
                      unsigned int bitset_number,
 		     hashtable_t *h 
                      )
 {
-	unsigned int i;
-	table_del_t *t_del;
+	unsigned int i, j;
+	bitset->bs_LSB = 0xFFFFFFFFFFFFFFFF;
+	bitset->bs_MSB = 0xFFFFFFFFFFFFFFFF;
+	int bin;
+	bool skip_ht_get;
+       	printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))", HT_SIZE);
 
-
-	bitset->bs_LSB = 0;
-	bitset->bs_MSB = 0;
-
-	if(del_entries != 0) {
-	   // hash phase 
-	   if(del_entries == UINT_MAX) { /*FIXME : find a smart way to reset the ht */
-		printf("Initialization of the hash table requested\n");
-		ht_init(h);
-	   }
-	   for (i = 0; i < table_del_size; i++) {
-		t_del = &table_del[i];
-
-		if (t_del->del_txnid == LAST_TXNID_ELMT) // testing whatever need to be tested
-			continue;
-
-		ht_set(h, t_del->ROW_ID);
-	   }
-	   del_entries--;
-	}
-
-	ht_dump(h); 
-
-	if(req_entries != 0) {
-	   for (i = 0; i < table_req_size; i++) {
-		int bin;
+	for (i = 0; i < table_req_size; i++) {
+		skip_ht_get = false;
 		table_req_t *t_req = &table_req[i];
 
-		bin = ht_get(h, t_req->ROW_ID);
+        	printf("\n#%2d - req_otid=%ld  ", i, t_req->ROW_ID.otid);
+		if (t_req->ROW_ID.otid >= p_req->low_mark) { //All txns < low-mark is included 
+			printf("filtered:  txns >= low-mark:%ld",p_req->low_mark); 
+			skip_ht_get = true; 
+			skip_ht_get = true; }
+		if (t_req->ROW_ID.otid >  p_req->high_mark) { //All txns > high-mark are excluded
+			printf("filtered:  txns > high-mark:%ld",  p_req->high_mark); 
+			skip_ht_get = true; }
+		for (j = 0; j <  p_req->excluded_txn_num; j++) 
+			if ( t_req->ROW_ID.otid == p_req->excluded_txn[j]) { //All txns in exclusions are excluded
+				printf("filtered:  txns is listed in excluded list"); 
+				skip_ht_get = true; 
+			}
+
+		if (!skip_ht_get) 
+			bin = ht_get(h, t_req->ROW_ID);
+		else
+			bin = 0;
 		if (bin == -1)
 			continue;	// nothing found
 		else {
 			bitset_number++;
-			printf("=> setting bitset request %d  (#%d)\n", i, (int)bitset_number);
+			printf(" => CLEARING BIT %d (#%d)", i, (int)bitset_number);
+			//printf("\n=> BEFORE bitset MSB: 0x%16lx - LSB: 0x%16lx\n", bitset->bs_MSB, bitset->bs_LSB);
 			if (i < 512)
-				bitset->bs_LSB = bitset->bs_LSB | (1 << i);
+				bitset->bs_LSB &= ~(1UL << i);
 			else
-				bitset->bs_MSB = bitset->bs_MSB | (1 << i);
+				bitset->bs_MSB &= ~(1UL << i);
+			//printf("=>  AFTER bitset MSB: 0x%16lx - LSB: 0x%16lx", bitset->bs_MSB, bitset->bs_LSB);
 		}
-	   }
-	   req_entries--;
 	}
+	req_entries--;
 
 	return 0;
 }
@@ -316,7 +357,9 @@ static int action_main(struct snap_sim_action *action,
 {
 	int rc;
 	struct acid_job *hj = (struct acid_job *)job;
+	param_table_t *p_del;
 	table_del_t *t_del;
+	param_table_t *p_req;
 	table_req_t *t_req;
 	bitset_t *bs;
 	unsigned int bitset_number = 0;
@@ -324,6 +367,11 @@ static int action_main(struct snap_sim_action *action,
 
 	print_job(hj);
 
+	p_del = (param_table_t *)hj->p_del.addr;
+	if (!p_del) {
+		printf("  p_del error \n");
+		goto err_out;
+	}
 	t_del = (table_del_t *)hj->t_del.addr;
 	if (!t_del || hj->t_del.size/sizeof(table_del_t) > TABLE_DEL_SIZE) {
 		printf("  t_del.size/sizeof(table_del_t) = %ld entries\n",
@@ -331,6 +379,11 @@ static int action_main(struct snap_sim_action *action,
 		goto err_out;
 	}
 
+	p_req = (param_table_t *)hj->p_req.addr;
+	if (!p_req) {
+		printf("  p_req error \n");
+		goto err_out;
+	}
 	t_req = (table_req_t *)hj->t_req.addr;
 	if (!t_req || hj->t_req.size/sizeof(table_req_t) > TABLE_REQ_SIZE) {
 		printf("  t_req.size/sizeof(table_req_t) = %ld entries\n",
@@ -347,11 +400,17 @@ static int action_main(struct snap_sim_action *action,
 		goto err_out;
 	}
 
-	rc = hash_fct(t_del, hj->t_del.size/sizeof(table_del_t), 
-                       hj->t_del_processed,
-                       t_req, hj->t_req.size/sizeof(table_req_t), 
-                       hj->t_req_processed,
+	// Build the hash table with deleted entries
+	if(p_del->entries != 0) 
+		rc = hash_write(p_del, t_del, hj->t_del.size/sizeof(table_del_t), 
+                       p_del->entries, h);
+
+	// Read the hash table with 1024 entries blocks
+	if(p_req->entries != 0)
+		rc = hash_read(p_req, t_req, hj->t_req.size/sizeof(table_req_t), 
+                       p_req->entries,
                        bs, bitset_number, h);
+
 	if (rc == 0) {
 		action->job.retc = SNAP_RETC_SUCCESS;
 	} else
