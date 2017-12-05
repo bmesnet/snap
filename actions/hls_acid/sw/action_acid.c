@@ -240,7 +240,7 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 	unsigned int i, j;
 	table_del_t *t_del;
 	bool skip_ht_set;
-       	printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))", HT_SIZE);
+       	//printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))", HT_SIZE);
 
 	// hash phase 
 	if(del_entries == UINT_MAX) { /*FIXME : find a smart way to reset the ht */
@@ -335,7 +335,7 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 
 	return 0;
 }
-
+/*
 static void print_job(struct acid_job *j)
 {
 	printf("Acid Job\n");
@@ -351,7 +351,7 @@ static void print_job(struct acid_job *j)
 	       j->hashtable.size/sizeof(entry_t));
 
 }
-
+*/
 static int action_main(struct snap_sim_action *action,
 		       void *job, unsigned int job_len __unused)
 {
@@ -365,7 +365,8 @@ static int action_main(struct snap_sim_action *action,
 	unsigned int bitset_number = 0;
 	hashtable_t *h;
 
-	print_job(hj);
+
+	//print_job(hj);
 
 	p_del = (param_table_t *)hj->p_del.addr;
 	if (!p_del) {
@@ -401,15 +402,19 @@ static int action_main(struct snap_sim_action *action,
 	}
 
 	// Build the hash table with deleted entries
-	if(p_del->entries != 0) 
+	if(p_del->entries != 0) {
+		//printf("\n<DBG>  Calling hash_write - p_del_entries= %ld\n", p_del->entries);
 		rc = hash_write(p_del, t_del, hj->t_del.size/sizeof(table_del_t), 
                        p_del->entries, h);
+	}
 
 	// Read the hash table with 1024 entries blocks
-	if(p_req->entries != 0)
+	if(p_req->entries != 0) {
+		printf("\n<DBG>  Calling hash_read - p_req_entries=%ld\n", p_req->entries);
 		rc = hash_read(p_req, t_req, hj->t_req.size/sizeof(table_req_t), 
                        p_req->entries,
                        bs, bitset_number, h);
+	}
 
 	if (rc == 0) {
 		action->job.retc = SNAP_RETC_SUCCESS;

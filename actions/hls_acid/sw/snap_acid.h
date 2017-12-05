@@ -22,6 +22,15 @@
 #include <libsnap.h>
 #include <action_acid.h>
 
+//struct snap_card *card = NULL;
+
+void closings(void);
+unsigned int openings(int card_in, int timeout_in, snap_action_flag_t action_irq);
+int snap_acid( param_table_t *p_del, ssize_t p_del_size, table_del_t *t_del, ssize_t t_del_size,
+          param_table_t *p_req, size_t p_req_size, table_req_t *t_req, size_t t_req_size,
+          bitset_t *bs, size_t bs_size, hashtable_t *h, size_t h_size);
+
+
 static inline void print_hex(void *buf, size_t len)
 {
 	unsigned int x;

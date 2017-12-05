@@ -38,10 +38,10 @@ $(error Please make sure that $$SNAP_ROOT is set up correctly.)
 endif
 endif
 
-snap_acid: action_acid.o
-snap_acid_objs = action_acid.o
+main_acid: snap_acid.o action_acid.o
+main_acid_objs =  snap_acid.o action_acid.o
 
-projs += snap_acid
+projs += main_acid
 
 # If you have the host code outside of the default snap directory structure, 
 # change to /path/to/snap/actions/software.mk

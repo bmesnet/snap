@@ -1,0 +1,7 @@
+
+
+
+gcc -c -fPIC  /root/snap/actions/hls_acid/jni/JNICall.c -o jnicall.o  -I/usr/lib/jvm/java-1.8.0/include/ -I/usr/lib/jvm/java-1.8.0/include/linux/ -I/root/snap/actions/hls_acid/jni/  -I/root/snap/software/include -I/root/snap/actions/hls_acid/sw -I/root/snap/actions/hls_acid/include
+
+
+gcc -L/root/snap/software/lib -shared -o /root/snap/actions/hls_acid/jni/libjnicall.so  jnicall.o /root/snap/actions/hls_acid/sw/snap_acid.o /root/snap/actions/hls_acid/sw/action_acid.o -lsnap -lcxl
