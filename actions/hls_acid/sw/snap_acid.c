@@ -78,6 +78,7 @@ unsigned int openings(int card_in, int timeout_in, snap_action_flag_t action_irq
 	if (card == NULL) {
 		fprintf(stderr, "err: failed to open card %u: %s\n",
 			card_no, strerror(errno));
+		fprintf(stderr, ">> Run with no FPGA? add SNAP_CONFIG=CPU before the command\n");
 		exit(EXIT_FAILURE);
 	}
 

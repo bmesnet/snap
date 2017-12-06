@@ -9,19 +9,19 @@ extern "C" {
 #endif
 /*
  * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
- * Method:    PrintfakeDeleteDeltas
- * Signature: (Ljava/util/Iterator;)I
- */
-JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_PrintfakeDeleteDeltas
-  (JNIEnv *, jobject, jobject);
-
-/*
- * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
  * Method:    SnapBuildHashTable
  * Signature: (ILorg/apache/hadoop/hive/ql/io/orc/ColumnizedDeleteEventRegistry/DeleteRecordKey;)I
  */
 JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHashTable
   (JNIEnv *, jobject, jint, jobject);
+
+/*
+ * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
+ * Method:    SnapReadHashTable
+ * Signature: (Lorg/apache/hadoop/hive/ql/exec/vector/VectorizedRowBatch;Ljava/util/BitSet;)I
+ */
+JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapReadHashTable
+  (JNIEnv *, jobject, jobject, jobject);
 
 #ifdef __cplusplus
 }

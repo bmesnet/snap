@@ -133,19 +133,28 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHa
 JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapReadHashTable
         (JNIEnv *env, jobject obj, jobject batch, jobject selectedBitSet){
 
-	printf("\n[JNICall.c]>> ENTERING SNAP READ HASH TABLE\n");
+//	printf("\n[JNICall.c]>> ENTERING SNAP READ HASH TABLE\n");
 
         jclass batch_class = (*env)->GetObjectClass(env, batch);
-        jfieldID numColsId = (*env)->GetFieldID(env, batch_class, "numColsId", "I");
+        jfieldID numCols = (*env)->GetFieldID(env, batch_class, "numCols", "I");
+        //jfieldID colsVector = (*env)->GetFieldID(env, batch_class, "colsVector", "LLongColumnVector");
+/*
+ *  long currentTransactionIdForBatch = ((LongColumnVector) batch.cols[OrcRecordUpdater.CURRENT_TRANSACTION]).vector[0];
+ *
+/*
         jfieldID originalTransactionId = (*env)->GetFieldID(env, batch_class, "originalTransactionId", "J");
         jfieldID bucketProperty = (*env)->GetFieldID(env, batch_class, "bucketProperty", "J");
-
+*/
         /** GET ATTIBUTES OF VectorizedRowBatch JAVA OBJECT **/
-        jint numCols_value = (*env)->GetLongField(env, batch, numColsId);
-        jlong otid_value  = (*env)->GetLongField(env, batch, originalTransactionId);
+        jint numCols_value = (*env)->GetLongField(env, batch, numCols);
+	//printf("\n[JNICall.c]>> numCols_value:%d\n", numCols_value);
+ 	//jobject colsValue = 0; // (*env)->GetObjectField(env, batch, colsVector);
+	//   printf("colsvalue=%ld\n", colsValue);
+/*        jlong otid_value  = (*env)->GetLongField(env, batch, originalTransactionId);
         jlong bucketProperty_value = (*env)->GetLongField(env, batch, bucketProperty);
         printf("\n[JNICall.c]**********  otid=%ld - Prop=%ld - numCols=%ld ***\n", 
 		otid_value, bucketProperty_value, numCols_value);
+*/
 /*
 	/// START -- Inserting call to snap fucntion
 	static table_del_t t_del[TABLE_DEL_SIZE] __attribute__((aligned(ACID_ALIGN)));
