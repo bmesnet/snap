@@ -26,18 +26,21 @@ extern "C" {
 #define ACID_ACTION_TYPE     0x10141002
 
 #define TABLE_DEL_SIZE 32 	/* size of the bursts - nb of del_txnid  entries */
-#define TABLE_REQ_SIZE 32 	/* size of the bursts - nb of ROW_ID requests */
-#define HT_SIZE     (TABLE_DEL_SIZE * 16) /* size of hashtable - used by MODULO for THE HASH KEY*/
+#define TABLE_REQ_SIZE 1024 	/* size of the bursts - nb of ROW_ID requests */
+#define HT_SIZE     (TABLE_DEL_SIZE * 512) /* size of hashtable - used by MODULO for THE HASH KEY*/
 #define HT_MULTI    (TABLE_DEL_SIZE) 	/* multihash entries numbers  */
 #define MAX_EXCL_TXN 2          /* maximum number of excluded transactions in exclusion list */
 #define MAX_TXNID_NUM 10        /* maximum id number of transactions */
 
-#define REQ_LOW_MARK 9
-#define REQ_HIGH_MARK 999
 #define DEL_LOW_MARK 999
 #define DEL_HIGH_MARK 999
 #define DEL_LOW_INPUT 1
 #define DEL_HIGH_INPUT 999
+
+#define REQ_LOW_MARK 999
+#define REQ_HIGH_MARK 999
+#define REQ_LOW_INPUT 1
+#define REQ_HIGH_INPUT 999
 
 typedef enum {false, true} bool;
 
@@ -93,8 +96,7 @@ typedef struct param_table_s {
 
 //stucture containing the 1024 bits of results
 typedef struct bitset_s {	  /* 1024 bits */
-	uint64_t bs_LSB;   	  /*  512 to   0 bits */
-	uint64_t bs_MSB; 	  /* 1023 to 512 bits */
+	char   bs[128];   	  /* 128 Bytes */
 } bitset_t;
 
 //--- Data exchanged between Application and action ---

@@ -256,7 +256,18 @@ int main(int argc, char *argv[])
 	p_del_t.high_input = DEL_HIGH_INPUT;
 	printf(">> Parameters used are: LOW-MARK=%d HIGH-MARK=%d LOW-INPUT=%d HIGH-INPUT=%d\n", 
 		DEL_LOW_MARK, DEL_HIGH_MARK, DEL_LOW_INPUT, DEL_HIGH_INPUT);
-	table_exception_fill(&p_del_t);
+	        table_exception_fill(&p_del_t);
+
+	printf("\n>> INITI of the HASH TABLE <<\n");
+	p_del_t.entries = UINT_MAX;
+	snap_acid( &p_del_t, sizeof(param_table_t),
+			    t_del, t_del_tocopy * sizeof(table_del_t),
+			    &p_req_t, sizeof(param_table_t),
+			    t_req, t_req_tocopy * sizeof(table_req_t),
+			    &bs, sizeof(bs),
+			    &hashtable, sizeof(hashtable));
+
+	p_del_t.entries = t_del_entries;
 
 	gettimeofday(&stimeD, NULL);
 	while (t_del_entries != 0) {
@@ -303,14 +314,16 @@ int main(int argc, char *argv[])
 			   &hashtable, sizeof(hashtable));
 
 
-		printf("\nBitset dump: Byte0 - 1 - 2 -... \n");
-		__hexdump(stderr, &bs, sizeof(bs));
-
 		if (rc != 0) {
 			fprintf(stderr, "err: job execution %d: %s!\n", rc,
 				strerror(errno));
 			goto out_error;
 		}
+		else {
+			printf("\nBitset dump:\n      Byte |1-0|-|3-2|-|4-5|-. \n");
+			__hexdump(stderr, &bs, sizeof(bs));
+		}
+
 /*
 		if (cjob.retc != SNAP_RETC_SUCCESS)  {
 			fprintf(stderr, "err: job retc %x!\n", cjob.retc);
@@ -322,7 +335,7 @@ int main(int argc, char *argv[])
 	gettimeofday(&etimeR, NULL);
 
 	printf("With default arguments, the expected result for Bitset is:\n"\
-		" 00000000: d2 b7 f0 ff ff ff ff ff ff ff ff ff ff ff ff ff\n");
+		" 00000000: f6 f7 f9 ff ff ff ff ff ff ff ff ff ff ff ff ff\n");
 
 	fprintf(stderr, "ReturnCode: %s\n"
 		"ACID Deletion lookup took %lld usec\n"

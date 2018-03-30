@@ -59,6 +59,9 @@
 #include <libsnap.h>
 #include <snap_internal.h>
 #include <snap_acid.h>
+#include <snap_tools.h>
+//#define VERBOSE_MODE
+//#define VERBOSE_MODE_MIN
 
 static int mmio_read32(struct snap_card *card,
 		       uint64_t offs, uint32_t *data)
@@ -119,16 +122,19 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 	unsigned int bin = 0;
 
 	bin = ht_hash(key);
-        printf(" { key.ROW_ID=(%ld, %d, %ld) }\t",
+#ifdef VERBOSE_MODE
+        printf("\n { key.ROW_ID=(%ld, %d, %ld) }\t",
                key.otid, key.bucketProperty, key.rowId);
-
+#endif
 	/* search if entry exists already */
 	for (i = 0; i < HT_SIZE; i++) { 
 		table_req_t *multi;
 		entry_t *entry = &ht->table[bin];
 
 		if (entry->used == 0) {	/* hey unused, we can have it */
+#ifdef VERBOSE_MODE
 			printf("key is %d, used %d <= 1rst entry", bin, entry->used);
+#endif
 			multi = &entry->multi[entry->used];
 			hashkey_cpy(&multi->ROW_ID, key);
 			entry->used++;
@@ -139,12 +145,16 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 			rc = hashkey_cmp(key, (entry->multi[j]).ROW_ID);
 
 			if (rc == 0)  {		/* key already in ht */
+#ifdef VERBOSE_MODE
 				printf("key is %d, used %d <= entry already exist", bin, j);
+#endif
 				return 0;
 			}
 			else {     /* different value */ 
 			   if(j == entry->used) {  /* insert new multi */
+#ifdef VERBOSE_MODE
 				printf("key is %d, used %d <= adding multi entry", bin, j);
+#endif
 				multi = &entry->multi[entry->used];
 				hashkey_cpy(&multi->ROW_ID, key);
 				entry->used++;
@@ -157,13 +167,15 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 			/* try next one */
 			/* FIXME: may be good to add a flag saying that next bin used  */
 			/* FIXME: or continue incrementing used to know how many values */
+#ifdef VERBOSE_MODE
 			printf("row %d, used %d <= trying next row", bin, entry->used);
+#endif 
 			bin = (bin + 1) % HT_SIZE;
 		    }
 		} // end of else
 	}
 
-	printf("LAST LINE REACHED - OVERFLOW\n");
+	printf("\n\n <<< ERROR >>> LAST LINE REACHED - OVERFLOW\n\n");
 	return 0;
 }
 
@@ -182,8 +194,10 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 	entry_t *entry = NULL;
 
 	bin = ht_hash(key);
-        printf(" { key.ROW_ID=(%ld, %d, %ld) }  ",
+#ifdef VERBOSE_MODE
+        printf("\n { key.ROW_ID=(%ld, %d, %ld) }  ",
                key.otid, key.bucketProperty, key.rowId);
+#endif
 
 
 	/* search if entry exists already */
@@ -193,7 +207,9 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 		entry = &ht->table[bin];
 
 		if (entry->used == 0) { 	/* key not there */
+#ifdef VERBOSE_MODE
 			printf("key is %d, used %d <= no entries", bin, entry->used);
+#endif
 			return -1;
 		}
 
@@ -202,19 +218,25 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 			rc = hashkey_cmp(key, multi->ROW_ID);
 
 			if (rc == 0) {		/* good key was found */
+#ifdef VERBOSE_MODE
 				printf("key is %d, position in multi %d(/%d) => FOUND", 
 					bin, j, entry->used - 1);
+#endif
 				return bin;
 			}
 		}
 		/* double hash */
 		if (entry->used == HT_MULTI) {	/* try next one */
+#ifdef VERBOSE_MODE
 			printf("key is %d, used %d <= trying next row", bin, entry->used);
+#endif
 			bin = (bin + 1) % HT_SIZE;
 		}
 		else {
+#ifdef VERBOSE_MODE
 			printf("key is %d, scan to multi %d(/%d) <= not found", 
 				bin, j - 1, entry->used - 1);
+#endif
 			return -1;
 		}
 	}
@@ -244,7 +266,9 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 
 	// hash phase 
 	if(del_entries == UINT_MAX) { /*FIXME : find a smart way to reset the ht */
+#ifdef VERBOSE_MODE_MIN
 		printf("Initialization of the hash table requested\n");
+#endif
 		ht_init(h);
 	}
 	for (i = 0; i < table_del_size; i++) {
@@ -252,29 +276,46 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 		t_del = &table_del[i];
 
 		// Filtering is done on the txnid - then storing ROW_ID in hash table
-        	printf("\ndel_txnid=%ld  ", t_del->del_txnid);
+        	//printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
 		if (t_del->del_txnid >= p_del->low_mark) {   //All txns < low-mark is included 
-			printf("filtered:  txns >= low-mark:%ld ",p_del->low_mark); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
+			printf("filtered:  del_txnid >= low-mark:%ld ",p_del->low_mark); 
+#endif
 			skip_ht_set = true; }
 		if (t_del->del_txnid <  p_del->low_input) {  //All txns < low-input is excluded
-			printf("filtered:  txns < low-input:%ld ",  p_del->low_input); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
+			printf("filtered:  del_txnid < low-input:%ld ",  p_del->low_input); 
+#endif
 			skip_ht_set = true; }
 		if (t_del->del_txnid >  p_del->high_mark) {  //All txns > high-mark are excluded 
-			printf("filtered:  txns > high-mark:%ld ",  p_del->high_mark); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
+			printf("filtered:  del_txnid > high-mark:%ld ",  p_del->high_mark); 
+#endif
 			skip_ht_set = true; }
 		if (t_del->del_txnid >  p_del->high_input) { //All txns > high-input is excluded 
-			printf("filtered:  txns > high_input:%ld ", p_del->high_input); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
+			printf("filtered:  del_txnid > high_input:%ld ", p_del->high_input); 
+#endif
 			skip_ht_set = true; }
 		for (j = 0; j <  p_del->excluded_txn_num; j++) 
 			if ( t_del->del_txnid == p_del->excluded_txn[j]) { //All txns in exclusions are excluded
-				printf("filtered:  txns is listed in excluded list"); 
+#ifdef VERBOSE_MODE_MIN
+        			printf("\ndel_txnid=%3ld  ", t_del->del_txnid);
+				printf("filtered:  del_txnid is listed in excluded list"); 
+#endif
 				skip_ht_set = true;
 			}
 
 		if(!skip_ht_set)
 			ht_set(h, t_del->ROW_ID);
+#ifdef VERBOSE_MODE_MIN
 		else
 			printf(" => entry not added to hash table"); 
+#endif
 	}
 	del_entries--;
 
@@ -290,49 +331,60 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
                      )
 {
 	unsigned int i, j;
-	bitset->bs_LSB = 0xFFFFFFFFFFFFFFFF;
-	bitset->bs_MSB = 0xFFFFFFFFFFFFFFFF;
 	int bin;
 	bool skip_ht_get;
-       	printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))", HT_SIZE);
+	for(i = 0; i < 128; i++)
+		bitset->bs[i] = 0xFF;
+       	//printf("\n (key used is ROW_ID.row_id modulo %d (HT_SIZE))\n", HT_SIZE);
 
 	for (i = 0; i < table_req_size; i++) {
 		skip_ht_get = false;
 		table_req_t *t_req = &table_req[i];
+        	//printf("\n#%2d - ROW_ID=(%ld, %d, %ld) ", i, t_req->ROW_ID.otid, t_req->ROW_ID.bucketProperty, t_req->ROW_ID.rowId);
 
-        	printf("\n#%2d - req_otid=%ld  ", i, t_req->ROW_ID.otid);
 		if (t_req->ROW_ID.otid >= p_req->low_mark) { //All txns < low-mark is included 
-			printf("filtered:  txns >= low-mark:%ld",p_req->low_mark); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\n#%2d - ROW_ID=(%ld, %d, %ld) ", i, t_req->ROW_ID.otid, t_req->ROW_ID.bucketProperty, t_req->ROW_ID.rowId);
+        		printf("- txn_id=%ld  ", t_req->ROW_ID.otid);
+			printf("Req filtered:  otid >= low-mark:%ld",p_req->low_mark); 
+#endif
 			skip_ht_get = true; 
 			skip_ht_get = true; }
 		if (t_req->ROW_ID.otid >  p_req->high_mark) { //All txns > high-mark are excluded
-			printf("filtered:  txns > high-mark:%ld",  p_req->high_mark); 
+#ifdef VERBOSE_MODE_MIN
+        		printf("\n#%2d - ROW_ID=(%ld, %d, %ld) ", i, t_req->ROW_ID.otid, t_req->ROW_ID.bucketProperty, t_req->ROW_ID.rowId);
+        		printf("- txn_id=%ld  ", t_req->ROW_ID.otid);
+			printf("Req filtered:  otid > high-mark:%ld",  p_req->high_mark); 
+#endif
 			skip_ht_get = true; }
 		for (j = 0; j <  p_req->excluded_txn_num; j++) 
 			if ( t_req->ROW_ID.otid == p_req->excluded_txn[j]) { //All txns in exclusions are excluded
-				printf("filtered:  txns is listed in excluded list"); 
+#ifdef VERBOSE_MODE_MIN
+        			printf("\n#%2d - ROW_ID=(%ld, %d, %ld) ", i, t_req->ROW_ID.otid, t_req->ROW_ID.bucketProperty, t_req->ROW_ID.rowId);
+        			printf("- txn_id=%ld  ", t_req->ROW_ID.otid);
+				printf("Req filtered:  otid is listed in excluded list"); 
+#endif
 				skip_ht_get = true; 
 			}
 
 		if (!skip_ht_get) 
 			bin = ht_get(h, t_req->ROW_ID);
 		else
-			bin = 0;
+			bin = -1;
 		if (bin == -1)
 			continue;	// nothing found
 		else {
 			bitset_number++;
-			printf(" => CLEARING BIT %d (#%d)", i, (int)bitset_number);
-			//printf("\n=> BEFORE bitset MSB: 0x%16lx - LSB: 0x%16lx\n", bitset->bs_MSB, bitset->bs_LSB);
-			if (i < 512)
-				bitset->bs_LSB &= ~(1UL << i);
-			else
-				bitset->bs_MSB &= ~(1UL << i);
-			//printf("=>  AFTER bitset MSB: 0x%16lx - LSB: 0x%16lx", bitset->bs_MSB, bitset->bs_LSB);
+#ifdef VERBOSE_MODE_MIN
+			printf("\nROW_ID %ld FOUND in table => CLEARING BIT %d (#%d)",  t_req->ROW_ID.rowId, i, (int)bitset_number);
+#endif
+			bitset->bs[i/8] &= ~(1 << i%8);
 		}
 	}
 	req_entries--;
 
+	//printf("\n => Number of BITS CLEARED = %d\n", (int)bitset_number);
+	//__hexdump(stdout, &bitset->bs, sizeof(bitset->bs));
 	return 0;
 }
 /*
@@ -375,8 +427,8 @@ static int action_main(struct snap_sim_action *action,
 	}
 	t_del = (table_del_t *)hj->t_del.addr;
 	if (!t_del || hj->t_del.size/sizeof(table_del_t) > TABLE_DEL_SIZE) {
-		printf("  t_del.size/sizeof(table_del_t) = %ld entries\n",
-		       hj->t_del.size/sizeof(table_del_t));
+		printf("ERROR: t_del.size/sizeof(table_del_t) = %ld entries > TABLE_DEL_SIZE = %d\n",
+		       hj->t_del.size/sizeof(table_del_t), TABLE_DEL_SIZE);
 		goto err_out;
 	}
 
@@ -387,8 +439,8 @@ static int action_main(struct snap_sim_action *action,
 	}
 	t_req = (table_req_t *)hj->t_req.addr;
 	if (!t_req || hj->t_req.size/sizeof(table_req_t) > TABLE_REQ_SIZE) {
-		printf("  t_req.size/sizeof(table_req_t) = %ld entries\n",
-		       hj->t_req.size/sizeof(table_req_t));
+		printf("ERROR: t_req.size/sizeof(table_req_t) = %ld entries > TABLE_REQ_SIZE = %d\n",
+		       hj->t_req.size/sizeof(table_req_t), TABLE_REQ_SIZE);
 		goto err_out;
 	}
 
@@ -410,10 +462,12 @@ static int action_main(struct snap_sim_action *action,
 
 	// Read the hash table with 1024 entries blocks
 	if(p_req->entries != 0) {
-		printf("\n<DBG>  Calling hash_read - p_req_entries=%ld\n", p_req->entries);
+		//printf("\n<DBG>  Calling hash_read - p_req_entries=%ld\n", p_req->entries);
 		rc = hash_read(p_req, t_req, hj->t_req.size/sizeof(table_req_t), 
                        p_req->entries,
                        bs, bitset_number, h);
+		//printf("\n<DBG>  Bit set number =%d\n", (int)bitset_number);
+		//__hexdump(stdout, bs, sizeof(bs));
 	}
 
 	if (rc == 0) {

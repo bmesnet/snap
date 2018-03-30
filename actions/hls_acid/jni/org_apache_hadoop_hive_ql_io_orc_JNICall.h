@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
+ * Method:    SnapInitHashTable
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapInitHashTable
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
  * Method:    SnapBuildHashTable
  * Signature: (ILorg/apache/hadoop/hive/ql/io/orc/ColumnizedDeleteEventRegistry/DeleteRecordKey;)I
  */
@@ -22,6 +30,14 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHa
  */
 JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapReadHashTable
   (JNIEnv *, jobject, jobject, jobject);
+
+/*
+ * Class:     org_apache_hadoop_hive_ql_io_orc_JNICall
+ * Method:    SubSnapReadHashTable
+ * Signature: (Ljava/util/BitSet;[J[J[J)I
+ */
+JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SubSnapReadHashTable
+  (JNIEnv *, jobject, jobject, jlongArray, jlongArray, jlongArray);
 
 #ifdef __cplusplus
 }

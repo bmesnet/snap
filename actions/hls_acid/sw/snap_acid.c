@@ -155,6 +155,12 @@ int rc;
  
        		//jin.t_del_processed = 1; 	/* set the action to use the del table */
 		rc = snap_action_sync_execute_job(action, &cjob, timeout);
+
+                //if(t_req_size != 0) {
+                //    printf("\nBitset dump: Byte0 - 1 - 2 -... \n");
+                //    __hexdump(stdout, bs, sizeof(bs));
+                //}
+
 return rc;
 }
 
