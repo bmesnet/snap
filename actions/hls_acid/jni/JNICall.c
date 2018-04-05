@@ -86,7 +86,9 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapInitHas
                 &hashtable, sizeof(hashtable));
 	   }
 	}
-
+/************************
+ * JNI BUILD HASH TABLE *
+ ************************/
 JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHashTable
         (JNIEnv *env, jobject obj, jint index, jobject key){
 
@@ -116,8 +118,8 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHa
         param_table_t p_del_t;
 
 	//printf("\n[JNICall.c]>> BUILDING THE HASH TABLE FOR %d ENTRIES (bursts of %d entries)\n",
-	//	t_del_entries, TABLE_DEL_SIZE);
-	//fill he params structure
+		//t_del_entries, TABLE_DEL_SIZE);
+	//fill the params structure
         p_req_t.entries = 0;
         t_req_tocopy = 0;
 
@@ -159,7 +161,9 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SnapBuildHa
 }
 
 
-
+/***********************
+ * JNI READ HASH TABLE *
+ ***********************/
 JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SubSnapReadHashTable
         (JNIEnv *env, jobject obj, jobject selectedBitSet, jlongArray originalTransactionVector, jlongArray bucketProperties, jlongArray rowIdVector){
 
@@ -210,9 +214,9 @@ JNIEXPORT jint JNICALL Java_org_apache_hadoop_hive_ql_io_orc_JNICall_SubSnapRead
            //        i, otids[i], buckids[i], rowids[i], len_a);
            //}
 
-	//printf("\n[JNICall.c]>> READING THE HASH TABLE FOR %d ENTRIES (bursts of %d entries)\n",
-	//	t_req_entries, TABLE_REQ_SIZE);
-	//fill he params structure
+	printf("\n[JNICall.c]>> READING THE HASH TABLE FOR %d ENTRIES (bursts of %d entries)\n",
+		t_req_entries, TABLE_REQ_SIZE);
+	//fill the params structure
         p_del_t.entries = 0;
         t_del_tocopy = 0;
 

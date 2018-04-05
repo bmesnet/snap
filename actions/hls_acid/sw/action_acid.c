@@ -61,7 +61,7 @@
 #include <snap_acid.h>
 #include <snap_tools.h>
 //#define VERBOSE_MODE
-//#define VERBOSE_MODE_MIN
+#define VERBOSE_MODE_MIN
 
 static int mmio_read32(struct snap_card *card,
 		       uint64_t offs, uint32_t *data)
@@ -123,7 +123,7 @@ static int ht_set(hashtable_t *ht, ROW_ID_t key)
 
 	bin = ht_hash(key);
 #ifdef VERBOSE_MODE
-        printf("\n { key.ROW_ID=(%ld, %d, %ld) }\t",
+        printf("\n B: { key.ROW_ID=(%ld, %d, %ld) }\t",
                key.otid, key.bucketProperty, key.rowId);
 #endif
 	/* search if entry exists already */
@@ -195,7 +195,7 @@ static int ht_get(hashtable_t *ht, ROW_ID_t key)
 
 	bin = ht_hash(key);
 #ifdef VERBOSE_MODE
-        printf("\n { key.ROW_ID=(%ld, %d, %ld) }  ",
+        printf("\n R: { key.ROW_ID=(%ld, %d, %ld) }  ",
                key.otid, key.bucketProperty, key.rowId);
 #endif
 
